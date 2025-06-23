@@ -34,16 +34,17 @@ class Contact(Document):
 		google_contacts: DF.Link | None
 		google_contacts_id: DF.Data | None
 		image: DF.AttachImage | None
+		instagram: DF.Data | None
 		is_primary_contact: DF.Check
 		last_name: DF.Data | None
 		links: DF.Table[DynamicLink]
-		middle_name: DF.Data | None
 		mobile_no: DF.Data | None
+		organization_name: DF.Data | None
 		phone: DF.Data | None
 		phone_nos: DF.Table[ContactPhone]
+		primary_type: DF.Link
 		pulled_from_google_contacts: DF.Check
-		salutation: DF.Link | None
-		status: DF.Literal["Passive", "Open", "Replied"]
+		secondary_type: DF.Link
 		sync_with_google_contacts: DF.Check
 		unsubscribed: DF.Check
 		user: DF.Link | None

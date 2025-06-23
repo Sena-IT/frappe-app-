@@ -5,6 +5,23 @@ frappe.ui.form.on("Contact", {
 	onload(frm) {
 		frm.email_field = "email_id";
 	},
+	primary_type: function (frm) {
+		frm.set_query("secondary_type", function () {
+			let filters = {};
+			if (frm.doc.primary_type == "Employee") {
+				filters = {
+					name: ["in", ["User", "Non User"]],
+				};
+			} else if (["Customer", "Vendor"].includes(frm.doc.primary_type)) {
+				filters = {
+					name: ["in", ["Individual", "Organization"]],
+				};
+			}
+			return {
+				filters: filters,
+			};
+		});
+	},
 	refresh: function (frm) {
 		if (frm.doc.__islocal) {
 			const last_doc = frappe.contacts.get_last_doc(frm);

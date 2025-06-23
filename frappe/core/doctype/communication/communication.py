@@ -45,28 +45,10 @@ class Communication(Document, CommunicationEmailMixin):
 		bcc: DF.Code | None
 		cc: DF.Code | None
 		communication_date: DF.Datetime | None
-		communication_medium: DF.Literal[
-			"", "Email", "Chat", "Phone", "SMS", "Event", "Meeting", "Visit", "Other"
-		]
+		communication_medium: DF.Literal["Email", "Chat", "Phone", "SMS", "Event", "Meeting", "Visit", "Other"]
 		communication_type: DF.Literal["Communication", "Automated Message"]
 		content: DF.TextEditor | None
-		delivery_status: DF.Literal[
-			"",
-			"Sent",
-			"Bounced",
-			"Opened",
-			"Marked As Spam",
-			"Rejected",
-			"Delayed",
-			"Soft-Bounced",
-			"Clicked",
-			"Recipient Unsubscribed",
-			"Error",
-			"Expired",
-			"Sending",
-			"Read",
-			"Scheduled",
-		]
+		delivery_status: DF.Literal["", "Sent", "Bounced", "Opened", "Marked As Spam", "Rejected", "Delayed", "Soft-Bounced", "Clicked", "Recipient Unsubscribed", "Error", "Expired", "Sending", "Read", "Scheduled"]
 		email_account: DF.Link | None
 		email_status: DF.Literal["Open", "Spam", "Trash"]
 		email_template: DF.Link | None

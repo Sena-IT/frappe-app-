@@ -42,9 +42,9 @@ class Contact(Document):
 		organization_name: DF.Data | None
 		phone: DF.Data | None
 		phone_nos: DF.Table[ContactPhone]
-		primary_type: DF.Link
+		primary_type: DF.Link | None
 		pulled_from_google_contacts: DF.Check
-		secondary_type: DF.Link
+		secondary_type: DF.Link | None
 		sync_with_google_contacts: DF.Check
 		unsubscribed: DF.Check
 		user: DF.Link | None
@@ -170,7 +170,7 @@ class Contact(Document):
 			setattr(self, fieldname, "")
 
 	def _get_full_name(self) -> str:
-		return get_full_name(self.first_name, self.middle_name, self.last_name, self.company_name)
+		return get_full_name(self.first_name, "", self.last_name, self.company_name)
 
 	def get_vcard(self):
 		from vobject import vCard
@@ -186,8 +186,8 @@ class Contact(Document):
 		if self.last_name:
 			name.family = self.last_name
 
-		if self.middle_name:
-			name.additional = self.middle_name
+		# if self.middle_name:
+		# 	name.additional = self.middle_name
 
 		vcard.add("n").value = name
 

@@ -23,9 +23,13 @@ class Contact(Document):
 		from frappe.types import DF
 
 		address: DF.Link | None
+		address_line1: DF.Data | None
+		city: DF.Data | None
 		company_name: DF.Data | None
+		country: DF.Data | None
 		department: DF.Data | None
 		designation: DF.Data | None
+		dob: DF.Date | None
 		email_id: DF.Data | None
 		email_ids: DF.Table[ContactEmail]
 		first_name: DF.Data | None
@@ -39,12 +43,14 @@ class Contact(Document):
 		last_name: DF.Data | None
 		links: DF.Table[DynamicLink]
 		mobile_no: DF.Data | None
+		notes: DF.LongText | None
 		organization_name: DF.Data | None
 		phone: DF.Data | None
 		phone_nos: DF.Table[ContactPhone]
 		primary_type: DF.Link | None
 		pulled_from_google_contacts: DF.Check
 		secondary_type: DF.Link | None
+		state: DF.Data | None
 		sync_with_google_contacts: DF.Check
 		unsubscribed: DF.Check
 		user: DF.Link | None

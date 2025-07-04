@@ -21,6 +21,8 @@ class ListViewSettings(Document):
 		disable_count: DF.Check
 		disable_sidebar_stats: DF.Check
 		fields: DF.Code | None
+		filters: DF.Code | None
+		order_by: DF.Data | None
 		total_fields: DF.Literal["", "4", "5", "6", "7", "8", "9", "10"]
 	# end: auto-generated types
 

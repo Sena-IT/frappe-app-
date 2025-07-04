@@ -14,7 +14,9 @@
   "disable_automatic_recency_filters",
   "total_fields",
   "fields_html",
-  "fields"
+  "fields",
+  "filters",
+  "order_by"
  ],
  "fields": [
   {
@@ -71,11 +73,21 @@
    "fieldname": "disable_automatic_recency_filters",
    "fieldtype": "Check",
    "label": "Disable Automatic Recency Filters"
+  },
+  {
+   "fieldname": "filters",
+   "fieldtype": "Code",
+   "label": "filters"
+  },
+  {
+   "fieldname": "order_by",
+   "fieldtype": "Data",
+   "label": "order by"
   }
  ],
  "grid_page_length": 50,
  "links": [],
- "modified": "2025-03-12 16:28:46.073808",
+ "modified": "2025-07-04 14:05:38.154720",
  "modified_by": "Administrator",
  "module": "Desk",
  "name": "List View Settings",

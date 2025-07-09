@@ -924,4 +924,3 @@ def set_avg_response_time(parent, communication):
 				parent.db_set("avg_response_time", avg_response_time)
 
 
-

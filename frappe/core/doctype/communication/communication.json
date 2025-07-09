@@ -1,306 +1,306 @@
 {
- "actions": [],
- "allow_import": 1,
- "creation": "2013-01-29 10:47:14",
- "default_view": "List",
- "description": "Keeps track of all communications",
- "doctype": "DocType",
- "document_type": "Setup",
- "engine": "InnoDB",
- "field_order": [
-  "subject",
-  "communication_medium",
-  "recipients",
-  "phone_no",
-  "instagram",
-  "content",
-  "sent_or_received",
-  "status",
-  "reference_doctype",
-  "reference_name",
-  "content_type",
-  "attachment",
-  "communication_date",
-  "user",
-  "send_after",
-  "sender",
-  "sender_phone",
-  "sender_full_name",
-  "seen",
-  "communication_type",
-  "email_status",
-  "reference_owner",
-  "chat_section",
-  "message_id",
-  "external_conversation_id",
-  "delivery_status",
-  "read_receipt",
-  "read_by_recipient",
-  "read_by_recipient_on",
-  "message_direction",
-  "reply_to_message_id",
-  "is_reply",
-  "column_break_chat",
-  "thread_id",
-  "forwarded",
-  "starred",
-  "pinned",
-  "message_priority"
- ],
- "fields": [
-  {
-   "fieldname": "subject",
-   "fieldtype": "Small Text",
-   "in_global_search": 1,
-   "label": "Subject",
-   "reqd": 1
-  },
-  {
-   "fieldname": "communication_medium",
-   "fieldtype": "Link",
-   "in_list_view": 1,
-   "in_standard_filter": 1,
-   "label": "Type",
-   "options": "Communication Medium",
-   "reqd": 1
-  },
-  {
-   "depends_on": "eval:doc.communication_medium==='Email'",
-   "fieldname": "recipients",
-   "fieldtype": "Text",
-   "label": "To",
-   "options": "Email"
-  },
-  {
-   "depends_on": "eval:doc.communication_medium==='WhatsApp' || doc.communication_medium==='SMS'",
-   "fieldname": "phone_no",
-   "fieldtype": "Text",
-   "in_list_view": 1,
-   "label": "To (Phone No./s)"
-  },
-  {
-   "depends_on": "eval:doc.communication_medium==='Instagram'",
-   "fieldname": "instagram",
-   "fieldtype": "Data",
-   "in_list_view": 1,
-   "label": "Instagram ID"
-  },
-  {
-   "fieldname": "content",
-   "fieldtype": "Text Editor",
-   "label": "Message"
-  },
-  {
-   "default": "Sent",
-   "fieldname": "sent_or_received",
-   "fieldtype": "Select",
-   "hidden": 1,
-   "label": "Sent or Received",
-   "options": "Sent\nReceived",
-   "reqd": 1
-  },
-  {
-   "default": "Open",
-   "fieldname": "status",
-   "fieldtype": "Select",
-   "hidden": 1,
-   "label": "Status",
-   "options": "Open\nReplied\nClosed\nLinked",
-   "reqd": 1
-  },
-  {
-   "fieldname": "reference_doctype",
-   "fieldtype": "Link",
-   "label": "Reference Document Type",
-   "options": "DocType"
-  },
-  {
-   "fieldname": "reference_name",
-   "fieldtype": "Dynamic Link",
-   "label": "Reference Name",
-   "options": "reference_doctype"
-  },
-  {
-   "default": "text",
-   "depends_on": "eval:doc.communication_medium==='WhatsApp' || doc.communication_medium==='Instagram'",
-   "fieldname": "content_type",
-   "fieldtype": "Select",
-   "label": "Content Type",
-   "options": "text\ndocument\nimage\nvideo\naudio"
-  },
-  {
-   "depends_on": "eval:(doc.communication_medium==='WhatsApp' || doc.communication_medium==='Instagram') && doc.content_type !== 'text'",
-   "fieldname": "attachment",
-   "fieldtype": "Attach",
-   "label": "Attachment"
-  },
-  {
-   "default": "Now",
-   "fieldname": "communication_date",
-   "fieldtype": "Datetime",
-   "label": "Date"
-  },
-  {
-   "default": "__user",
-   "fieldname": "user",
-   "fieldtype": "Link",
-   "label": "User",
-   "options": "User"
-  },
-  {
-   "fieldname": "send_after",
-   "fieldtype": "Datetime",
-   "label": "Send After"
-  },
-  {
-   "fieldname": "sender",
-   "fieldtype": "Data",
-   "label": "Sender"
-  },
-  {
-   "fieldname": "sender_phone",
-   "fieldtype": "Data",
-   "label": "Sender Phone"
-  },
-  {
-   "fieldname": "sender_full_name",
-   "fieldtype": "Data",
-   "label": "Sender Full Name"
-  },
-  {
-   "default": "0",
-   "fieldname": "seen",
-   "fieldtype": "Check",
-   "label": "Seen"
-  },
-  {
-   "default": "Communication",
-   "fieldname": "communication_type",
-   "fieldtype": "Select",
-   "label": "Communication Type",
-   "options": "Communication\nComment"
-  },
-  {
-   "fieldname": "email_status",
-   "fieldtype": "Select",
-   "label": "Email Status",
-   "options": "Open\nSpam\nTrash"
-  },
-  {
-   "fieldname": "reference_owner",
-   "fieldtype": "Data",
-   "label": "Reference Owner"
-  },
-  {
-   "fieldname": "chat_section",
-   "fieldtype": "Section Break",
-   "label": "Chat Section"
-  },
-  {
-   "fieldname": "message_id",
-   "fieldtype": "Data",
-   "label": "Message ID"
-  },
-  {
-   "fieldname": "external_conversation_id",
-   "fieldtype": "Data",
-   "label": "External Conversation ID"
-  },
-  {
-   "fieldname": "delivery_status",
-   "fieldtype": "Select",
-   "label": "Delivery Status",
-   "options": "Pending\nDelivered\nFailed\nRead"
-  },
-  {
-   "fieldname": "read_receipt",
-   "fieldtype": "Check",
-   "label": "Read Receipt"
-  },
-  {
-   "fieldname": "read_by_recipient",
-   "fieldtype": "Check",
-   "label": "Read by Recipient"
-  },
-  {
-   "fieldname": "read_by_recipient_on",
-   "fieldtype": "Datetime",
-   "label": "Read by Recipient On"
-  },
-  {
-   "fieldname": "message_direction",
-   "fieldtype": "Select",
-   "label": "Message Direction",
-   "options": "Inbound\nOutbound"
-  },
-  {
-   "fieldname": "reply_to_message_id",
-   "fieldtype": "Data",
-   "label": "Reply to Message ID"
-  },
-  {
-   "fieldname": "is_reply",
-   "fieldtype": "Check",
-   "label": "Is Reply"
-  },
-  {
-   "fieldname": "column_break_chat",
-   "fieldtype": "Column Break",
-   "label": "Column Break Chat"
-  },
-  {
-   "fieldname": "thread_id",
-   "fieldtype": "Data",
-   "label": "Thread ID"
-  },
-  {
-   "fieldname": "forwarded",
-   "fieldtype": "Check",
-   "label": "Forwarded"
-  },
-  {
-   "fieldname": "starred",
-   "fieldtype": "Check",
-   "label": "Starred"
-  },
-  {
-   "fieldname": "pinned",
-   "fieldtype": "Check",
-   "label": "Pinned"
-  },
-  {
-   "fieldname": "message_priority",
-   "fieldtype": "Select",
-   "label": "Message Priority",
-   "options": "Low\nMedium\nHigh\nUrgent"
-  }
- ],
- "icon": "fa fa-comment",
- "idx": 1,
- "index_web_pages_for_search": 1,
- "links": [],
- "modified": "2025-01-27 10:00:00.000000",
- "modified_by": "Administrator",
- "module": "Core",
- "name": "Communication",
- "owner": "Administrator",
- "permissions": [
-  {
-   "create": 1,
-   "delete": 1,
-   "email": 1,
-   "read": 1,
-   "report": 1,
-   "role": "System Manager",
-   "share": 1,
-   "write": 1
-  }
- ],
- "row_format": "Dynamic",
- "sort_field": "creation",
- "sort_order": "DESC",
- "states": [],
- "title_field": "phone_no",
- "track_changes": 1,
- "track_seen": 1
+  "actions": [],
+  "allow_import": 1,
+  "creation": "2013-01-29 10:47:14",
+  "default_view": "List",
+  "description": "Keeps track of all communications",
+  "doctype": "DocType",
+  "document_type": "Setup",
+  "engine": "InnoDB",
+  "field_order": [
+    "subject",
+    "communication_medium",
+    "recipients",
+    "phone_no",
+    "instagram",
+    "content",
+    "sent_or_received",
+    "status",
+    "reference_doctype",
+    "reference_name",
+    "content_type",
+    "attachment",
+    "communication_date",
+    "user",
+    "send_after",
+    "sender",
+    "sender_phone",
+    "sender_full_name",
+    "seen",
+    "communication_type",
+    "email_status",
+    "reference_owner",
+    "chat_section",
+    "message_id",
+    "external_conversation_id",
+    "delivery_status",
+    "read_receipt",
+    "read_by_recipient",
+    "read_by_recipient_on",
+    "message_direction",
+    "reply_to_message_id",
+    "is_reply",
+    "column_break_chat",
+    "thread_id",
+    "forwarded",
+    "starred",
+    "pinned",
+    "message_priority"
+  ],
+  "fields": [
+    {
+      "fieldname": "subject",
+      "fieldtype": "Small Text",
+      "in_global_search": 1,
+      "label": "Subject",
+      "reqd": 1
+    },
+    {
+      "fieldname": "communication_medium",
+      "fieldtype": "Link",
+      "in_list_view": 1,
+      "in_standard_filter": 1,
+      "label": "Type",
+      "options": "Communication Medium",
+      "reqd": 1
+    },
+    {
+      "depends_on": "eval:doc.communication_medium==='Email'",
+      "fieldname": "recipients",
+      "fieldtype": "Text",
+      "label": "To",
+      "options": "Email"
+    },
+    {
+      "depends_on": "eval:doc.communication_medium==='WhatsApp' || doc.communication_medium==='SMS'",
+      "fieldname": "phone_no",
+      "fieldtype": "Text",
+      "in_list_view": 1,
+      "label": "To (Phone No./s)"
+    },
+    {
+      "depends_on": "eval:doc.communication_medium==='Instagram'",
+      "fieldname": "instagram",
+      "fieldtype": "Data",
+      "in_list_view": 1,
+      "label": "Instagram ID"
+    },
+    {
+      "fieldname": "content",
+      "fieldtype": "Text Editor",
+      "label": "Message"
+    },
+    {
+      "default": "Sent",
+      "fieldname": "sent_or_received",
+      "fieldtype": "Select",
+      "hidden": 1,
+      "label": "Sent or Received",
+      "options": "Sent\nReceived",
+      "reqd": 1
+    },
+    {
+      "default": "Open",
+      "fieldname": "status",
+      "fieldtype": "Select",
+      "hidden": 1,
+      "label": "Status",
+      "options": "Open\nReplied\nClosed\nLinked",
+      "reqd": 1
+    },
+    {
+      "fieldname": "reference_doctype",
+      "fieldtype": "Link",
+      "label": "Reference Document Type",
+      "options": "DocType"
+    },
+    {
+      "fieldname": "reference_name",
+      "fieldtype": "Dynamic Link",
+      "label": "Reference Name",
+      "options": "reference_doctype"
+    },
+    {
+      "default": "text",
+      "depends_on": "eval:doc.communication_medium==='WhatsApp' || doc.communication_medium==='Instagram'",
+      "fieldname": "content_type",
+      "fieldtype": "Select",
+      "label": "Content Type",
+      "options": "text\ndocument\nimage\nvideo\naudio"
+    },
+    {
+      "depends_on": "eval:(doc.communication_medium==='WhatsApp' || doc.communication_medium==='Instagram') && doc.content_type !== 'text'",
+      "fieldname": "attachment",
+      "fieldtype": "Attach",
+      "label": "Attachment"
+    },
+    {
+      "default": "Now",
+      "fieldname": "communication_date",
+      "fieldtype": "Datetime",
+      "label": "Date"
+    },
+    {
+      "default": "__user",
+      "fieldname": "user",
+      "fieldtype": "Link",
+      "label": "User",
+      "options": "User"
+    },
+    {
+      "fieldname": "send_after",
+      "fieldtype": "Datetime",
+      "label": "Send After"
+    },
+    {
+      "fieldname": "sender",
+      "fieldtype": "Data",
+      "label": "Sender"
+    },
+    {
+      "fieldname": "sender_phone",
+      "fieldtype": "Data",
+      "label": "Sender Phone"
+    },
+    {
+      "fieldname": "sender_full_name",
+      "fieldtype": "Data",
+      "label": "Sender Full Name"
+    },
+    {
+      "default": "0",
+      "fieldname": "seen",
+      "fieldtype": "Check",
+      "label": "Seen"
+    },
+    {
+      "default": "Communication",
+      "fieldname": "communication_type",
+      "fieldtype": "Select",
+      "label": "Communication Type",
+      "options": "Communication\nComment"
+    },
+    {
+      "fieldname": "email_status",
+      "fieldtype": "Select",
+      "label": "Email Status",
+      "options": "Open\nSpam\nTrash"
+    },
+    {
+      "fieldname": "reference_owner",
+      "fieldtype": "Data",
+      "label": "Reference Owner"
+    },
+    {
+      "fieldname": "chat_section",
+      "fieldtype": "Section Break",
+      "label": "Chat Section"
+    },
+    {
+      "fieldname": "message_id",
+      "fieldtype": "Data",
+      "label": "Message ID"
+    },
+    {
+      "fieldname": "external_conversation_id",
+      "fieldtype": "Data",
+      "label": "External Conversation ID"
+    },
+    {
+      "fieldname": "delivery_status",
+      "fieldtype": "Select",
+      "label": "Delivery Status",
+      "options": "Pending\nDelivered\nFailed\nRead"
+    },
+    {
+      "fieldname": "read_receipt",
+      "fieldtype": "Check",
+      "label": "Read Receipt"
+    },
+    {
+      "fieldname": "read_by_recipient",
+      "fieldtype": "Check",
+      "label": "Read by Recipient"
+    },
+    {
+      "fieldname": "read_by_recipient_on",
+      "fieldtype": "Datetime",
+      "label": "Read by Recipient On"
+    },
+    {
+      "fieldname": "message_direction",
+      "fieldtype": "Select",
+      "label": "Message Direction",
+      "options": "Inbound\nOutbound"
+    },
+    {
+      "fieldname": "reply_to_message_id",
+      "fieldtype": "Data",
+      "label": "Reply to Message ID"
+    },
+    {
+      "fieldname": "is_reply",
+      "fieldtype": "Check",
+      "label": "Is Reply"
+    },
+    {
+      "fieldname": "column_break_chat",
+      "fieldtype": "Column Break",
+      "label": "Column Break Chat"
+    },
+    {
+      "fieldname": "thread_id",
+      "fieldtype": "Data",
+      "label": "Thread ID"
+    },
+    {
+      "fieldname": "forwarded",
+      "fieldtype": "Check",
+      "label": "Forwarded"
+    },
+    {
+      "fieldname": "starred",
+      "fieldtype": "Check",
+      "label": "Starred"
+    },
+    {
+      "fieldname": "pinned",
+      "fieldtype": "Check",
+      "label": "Pinned"
+    },
+    {
+      "fieldname": "message_priority",
+      "fieldtype": "Select",
+      "label": "Message Priority",
+      "options": "Low\nMedium\nHigh\nUrgent"
+    }
+  ],
+  "icon": "fa fa-comment",
+  "idx": 1,
+  "index_web_pages_for_search": 1,
+  "links": [],
+  "modified": "2025-01-27 10:00:00.000000",
+  "modified_by": "Administrator",
+  "module": "Core",
+  "name": "Communication",
+  "owner": "Administrator",
+  "permissions": [
+    {
+      "create": 1,
+      "delete": 1,
+      "email": 1,
+      "read": 1,
+      "report": 1,
+      "role": "System Manager",
+      "share": 1,
+      "write": 1
+    }
+  ],
+  "row_format": "Dynamic",
+  "sort_field": "creation",
+  "sort_order": "DESC",
+  "states": [],
+  "title_field": "phone_no",
+  "track_changes": 1,
+  "track_seen": 1
 }

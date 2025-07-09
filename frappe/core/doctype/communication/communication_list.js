@@ -25,6 +25,6 @@ frappe.listview_settings["Communication"] = {
 	},
 
 	primary_action: function () {
-		new frappe.views.CommunicationComposer();
+		frappe.new_doc("Communication");
 	},
 };

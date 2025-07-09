@@ -20,7 +20,7 @@ def get_contact_list(txt, page_length=20, extra_filters: str | None = None) -> l
 	if extra_filters:
 		filters.extend(extra_filters)
 
-	fields = ["first_name", "middle_name", "last_name", "company_name"]
+	fields = ["first_name", "last_name", "company_name"]
 	contacts = frappe.get_list(
 		"Contact",
 		fields=["full_name", "`tabContact Email`.email_id"],

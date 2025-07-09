@@ -51,6 +51,7 @@
   "links",
   "is_primary_contact",
   "more_info",
+  "department",
   "unsubscribed"
  ],
  "fields": [
@@ -320,6 +321,11 @@
    "label": "More Information",
    "options": "fa fa-file-text"
   },
+  {
+    "fieldname": "department",
+    "fieldtype": "Data",
+    "label": "Department"
+ },
   {
    "fieldname": "full_name",
    "fieldtype": "Data",

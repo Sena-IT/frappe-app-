@@ -3,6 +3,7 @@
 
 from collections import Counter
 from email.utils import getaddresses
+import re
 from urllib.parse import unquote_plus
 
 from bs4 import BeautifulSoup
@@ -17,6 +18,7 @@ from frappe.core.doctype.comment.comment import update_comment_in_doc
 from frappe.core.doctype.communication.email import validate_email
 from frappe.core.doctype.communication.mixins import CommunicationEmailMixin
 from frappe.core.utils import get_parent_doc
+from frappe.core.api.whatsapp import send_whatsapp_message
 from frappe.model.document import Document
 from frappe.utils import (
 	cstr,
@@ -45,8 +47,8 @@ class Communication(Document, CommunicationEmailMixin):
 		bcc: DF.Code | None
 		cc: DF.Code | None
 		communication_date: DF.Datetime | None
-		communication_medium: DF.Literal["Email", "Chat", "Phone", "SMS", "Event", "Meeting", "Visit", "Other"]
-		communication_type: DF.Literal["Communication", "Automated Message"]
+		communication_medium: DF.Link | None
+		communication_type: DF.Literal["Communication Type"]
 		content: DF.TextEditor | None
 		delivery_status: DF.Literal["", "Sent", "Bounced", "Opened", "Marked As Spam", "Rejected", "Delayed", "Soft-Bounced", "Clicked", "Recipient Unsubscribed", "Error", "Expired", "Sending", "Read", "Scheduled"]
 		email_account: DF.Link | None
@@ -56,7 +58,7 @@ class Communication(Document, CommunicationEmailMixin):
 		imap_folder: DF.Data | None
 		in_reply_to: DF.Link | None
 		message_id: DF.SmallText | None
-		phone_no: DF.Data | None
+		phone_no: DF.Text | None
 		read_by_recipient: DF.Check
 		read_by_recipient_on: DF.Datetime | None
 		read_receipt: DF.Check
@@ -68,6 +70,7 @@ class Communication(Document, CommunicationEmailMixin):
 		send_after: DF.Datetime | None
 		sender: DF.Data | None
 		sender_full_name: DF.Data | None
+		sender_phone: DF.Data | None
 		sent_or_received: DF.Literal["Sent", "Received"]
 		status: DF.Literal["Open", "Replied", "Closed", "Linked"]
 		subject: DF.SmallText
@@ -125,14 +128,14 @@ class Communication(Document, CommunicationEmailMixin):
 		if not self.send_after:  # Handle empty string, always set NULL
 			self.send_after = None
 
-		validate_email(self)
-
 		if self.communication_medium == "Email":
+			validate_email(self)
 			self.parse_email_for_timeline_links()
 			self.set_timeline_links()
 			self.deduplicate_timeline_links()
-
-		self.set_sender_full_name()
+			self.set_sender_full_name()
+		elif self.communication_medium in ["Phone", "SMS", "WhatsApp", "Instagram"]:
+			self.set_phone_sender_details()
 
 		if self.is_new():
 			self.set_status()
@@ -218,13 +221,16 @@ class Communication(Document, CommunicationEmailMixin):
 			self.content = f'{self.content}</p><br><p class="signature">{signature}'
 
 	def before_save(self):
-		if not self.flags.skip_add_signature:
+		if self.communication_medium == "Email" and not self.flags.skip_add_signature:
 			self.set_signature_in_email_content()
 
 	def on_update(self):
 		# add to _comment property of the doctype, so it shows up in
 		# comments count for the list view
 		update_comment_in_doc(self)
+
+		# Publish real-time events for updated communications
+		self.notify_change("update")
 
 		parent = get_parent_doc(self)
 		if (method := getattr(parent, "on_communication_update", None)) and callable(method):
@@ -263,6 +269,13 @@ class Communication(Document, CommunicationEmailMixin):
 		"""Return `bcc` list."""
 		return self._get_emails_list(self.bcc, exclude_displayname=exclude_displayname)
 
+	def phone_list(self):
+		"""Return `phone_no` list."""
+		if not self.phone_no:
+			return []
+		# split by comma, semicolon, or newline
+		return [p.strip() for p in re.split(r"[,;\\n]", self.phone_no) if p.strip()]
+
 	def get_attachments(self):
 		return frappe.get_all(
 			"File",
@@ -274,13 +287,22 @@ class Communication(Document, CommunicationEmailMixin):
 		)
 
 	def notify_change(self, action):
+		print(f"=== COMMUNICATION.NOTIFY_CHANGE CALLED ===")
+		print(f"Action: {action}")
+		print(f"Reference: {self.reference_doctype} / {self.reference_name}")
+		print(f"Medium: {self.communication_medium}")
+		
+		event_data = {"doc": self.as_dict(), "key": "communications", "action": action}
+		print(f"Publishing docinfo_update event: {event_data}")
+		
 		frappe.publish_realtime(
 			"docinfo_update",
-			{"doc": self.as_dict(), "key": "communications", "action": action},
+			event_data,
 			doctype=self.reference_doctype,
 			docname=self.reference_name,
 			after_commit=True,
 		)
+		print("✅ docinfo_update event published")
 
 	def set_status(self):
 		if self.reference_doctype and self.reference_name:
@@ -378,6 +400,21 @@ class Communication(Document, CommunicationEmailMixin):
 			if commit:
 				frappe.db.commit()
 
+	def set_phone_sender_details(self):
+		if self.sender_full_name or not self.sender_phone:
+			return
+
+		contact_name = frappe.db.get_value("Contact Phone", {"phone": self.sender_phone}, "parent")
+		if contact_name:
+			first_name, last_name = frappe.db.get_value(
+				"Contact", contact_name, ["first_name", "last_name"]
+			)
+			if first_name:
+				self.sender_full_name = f"{first_name} {last_name or ''}".strip()
+
+		if not self.sender_full_name:
+			self.sender_full_name = self.sender_phone
+
 	def parse_email_for_timeline_links(self):
 		if not frappe.db.get_value("Email Account", filters={"enable_automatic_linking": 1}):
 			return
@@ -433,6 +470,229 @@ class Communication(Document, CommunicationEmailMixin):
 
 		if autosave:
 			self.save(ignore_permissions=ignore_permissions)
+
+	@staticmethod
+	def get_or_create_contact_from_phone(partner_phone, sender_name=None, auto_create=True):
+		"""
+		Find an existing Contact for the phone number, or create a new one if auto_create is True.
+		Returns the contact name if found/created, None otherwise.
+		"""
+		# First, try to find existing contact by phone number
+		contact_name = frappe.db.get_value("Contact Phone", {"phone": partner_phone}, "parent")
+		
+		if contact_name:
+			return contact_name
+		
+		if not auto_create:
+			return None
+		
+		# Auto-create contact if none exists
+		try:
+			# Generate a contact name
+			if sender_name and sender_name.strip():
+				# Use provided sender name
+				first_name = sender_name.strip()
+				contact_name_candidate = first_name
+			else:
+				# Generate name from phone number
+				# Remove common prefixes and format nicely
+				clean_phone = partner_phone.lstrip("+").replace(" ", "").replace("-", "")
+				first_name = f"Contact {partner_phone}"
+				contact_name_candidate = first_name
+			
+			# Create the contact
+			contact = frappe.get_doc({
+				"doctype": "Contact",
+				"first_name": first_name,
+			})
+			
+			# Add the phone number
+			contact.add_phone(partner_phone, is_primary_phone=1)
+			
+			# Insert the contact
+			contact.insert(ignore_permissions=True)
+			
+			frappe.logger().info(f"Auto-created Contact '{contact.name}' for phone number '{partner_phone}'")
+			return contact.name
+			
+		except Exception as e:
+			frappe.logger().error(f"Failed to auto-create contact for phone {partner_phone}: {str(e)}")
+			# Log error but don't throw - conversation can still be created without contact
+			frappe.log_error(f"Auto-create contact failed for {partner_phone}: {str(e)}", "Contact Auto-Creation")
+			return None
+
+	@staticmethod
+	def get_or_create_conversation(partner_phone, medium=None, contact_name=None, sender_name=None, auto_create_contact=True):
+		"""
+		Find an existing Communication for the partner_phone, or create a new one.
+		A conversation is uniquely identified by the medium and the partner's phone number.
+		This method centralizes conversation management for all communication channels.
+		Now includes auto-contact creation for better data organization.
+		"""
+		if not medium:
+			frappe.throw("Communication medium is required to find or create a conversation.")
+
+		# First, try to find or create a Contact with this phone number
+		if not contact_name and auto_create_contact:
+			contact_name = Communication.get_or_create_contact_from_phone(
+				partner_phone, sender_name=sender_name, auto_create=True
+			)
+		
+		if contact_name:
+			comm_name = frappe.db.get_value(
+				"Communication",
+				{
+					"reference_doctype": "Contact", 
+					"reference_name": contact_name, 
+					"communication_medium": medium,
+					"communication_type": "Communication"  # Ensure it's a conversation container
+				},
+				"name",
+			)
+			if comm_name:
+				return frappe.get_doc("Communication", comm_name)
+
+		# If no contact-linked communication, find one by phone number (legacy fallback)
+		comm_name = frappe.db.get_value(
+			"Communication", 
+			{
+				"communication_medium": medium, 
+				"phone_no": partner_phone,
+				"communication_type": "Communication"  # Ensure it's a conversation container
+			}, 
+			"name"
+		)
+		if comm_name:
+			# If we found an unlinked conversation but now have a contact, link them
+			if contact_name:
+				conversation_doc = frappe.get_doc("Communication", comm_name)
+				conversation_doc.reference_doctype = "Contact"
+				conversation_doc.reference_name = contact_name
+				conversation_doc.status = "Linked"
+				conversation_doc.save(ignore_permissions=True)
+			return frappe.get_doc("Communication", comm_name)
+
+		# If no conversation exists, create a new one
+		conversation_doc = frappe.new_doc("Communication")
+		conversation_doc.communication_medium = medium
+		conversation_doc.phone_no = partner_phone
+		conversation_doc.sent_or_received = "Received"  # Parent doc is just a container
+		conversation_doc.communication_type = "Communication"  # Mark as conversation container
+		
+		if contact_name:
+			conversation_doc.subject = f"{medium} conversation with {contact_name}"
+			conversation_doc.reference_doctype = "Contact"
+			conversation_doc.reference_name = contact_name
+			conversation_doc.status = "Linked"
+		else:
+			conversation_doc.subject = f"{medium} conversation with {partner_phone}"
+			conversation_doc.status = "Open"
+		
+		conversation_doc.insert(ignore_permissions=True)
+		return conversation_doc
+
+	@staticmethod
+	def add_message_to_conversation(partner_phone, medium, message_content, message_type="Incoming", sender_name=None, message_id=None, content_type="text", attachment=None, reply_to_message_id=None, conversation_id=None):
+		"""
+		Add a message to an existing conversation by appending to the conversation's content.
+		This provides a unified interface for all communication channels to log messages.
+		"""
+		print("=== COMMUNICATION.ADD_MESSAGE_TO_CONVERSATION CALLED ===")
+		print(f"Partner Phone: {partner_phone}")
+		print(f"Medium: {medium}")
+		print(f"Message Type: {message_type}")
+		print(f"Content: {message_content}")
+		
+		conversation = Communication.get_or_create_conversation(
+			partner_phone, 
+			medium, 
+			sender_name=sender_name,
+			auto_create_contact=True
+		)
+		
+		print(f"Got conversation: {conversation.name}")
+		print(f"Conversation reference: {conversation.reference_doctype} / {conversation.reference_name}")
+		
+		# Format the new message with timestamp and sender info
+		from frappe.utils import format_datetime, now
+		timestamp = format_datetime(now(), "MMM dd, yyyy hh:mm a")
+		
+		# Determine sender name for display
+		if message_type == "Incoming":
+			display_sender = sender_name or partner_phone
+			message_direction = "→"  # Incoming arrow
+		else:
+			display_sender = "You"
+			message_direction = "←"  # Outgoing arrow
+		
+		# Format the message entry (fix whitespace issues)
+		if content_type == "text":
+			new_message = f"""<div class="message-entry" style="margin-bottom: 10px; padding: 8px; border-left: 3px solid {'#28a745' if message_type == 'Incoming' else '#007bff'};">
+<strong>{display_sender}</strong> <span style="color: #666; font-size: 0.9em;">{timestamp}</span> {message_direction}
+<div style="margin-top: 5px;">{message_content}</div>
+</div>"""
+		else:
+			# Handle non-text messages (images, documents, etc.)
+			attachment_info = f" [{content_type.upper()}]" + (f" - {attachment}" if attachment else "")
+			new_message = f"""<div class="message-entry" style="margin-bottom: 10px; padding: 8px; border-left: 3px solid {'#28a745' if message_type == 'Incoming' else '#007bff'};">
+<strong>{display_sender}</strong> <span style="color: #666; font-size: 0.9em;">{timestamp}</span> {message_direction}
+<div style="margin-top: 5px;">{message_content}{attachment_info}</div>
+</div>"""
+		
+		# Append to existing content or start new content
+		if conversation.content:
+			updated_content = conversation.content + new_message
+		else:
+			updated_content = new_message
+		
+		# Update the conversation with new message
+		conversation.content = updated_content
+		conversation.communication_date = now()
+		conversation.seen = 0  # Mark as unread when new message arrives
+		
+		# Update sender information and sent_or_received based on message type
+		if message_type == "Incoming":
+			conversation.sender_phone = partner_phone
+			if sender_name:
+				conversation.sender_full_name = sender_name
+			conversation.sent_or_received = "Received"
+		else:  # Outgoing message
+			conversation.sent_or_received = "Sent"
+		
+		# Store the latest external message ID for tracking
+		if message_id:
+			conversation.message_id = message_id
+		
+		# Update content type if specified
+		if content_type:
+			conversation.content_type = content_type
+		
+		# Save the conversation
+		print("Saving conversation...")
+		conversation.save(ignore_permissions=True)
+		print(f"✅ Conversation saved: {conversation.name}")
+		
+		# Publish specific WhatsApp message real-time event
+		if medium == "WhatsApp" and conversation.reference_doctype and conversation.reference_name:
+			event_data = {
+				"reference_doctype": conversation.reference_doctype,
+				"reference_name": conversation.reference_name,
+				"action": "update",
+				"message_type": message_type,
+			}
+			print(f"Publishing WhatsApp real-time event: {event_data}")
+			frappe.publish_realtime(
+				"whatsapp_message",
+				event_data,
+				after_commit=True,
+			)
+			print("✅ WhatsApp real-time event published")
+		else:
+			print(f"❌ Not publishing real-time event. Medium: {medium}, RefType: {conversation.reference_doctype}, RefName: {conversation.reference_name}")
+		
+		frappe.logger().info(f"Added {message_type.lower()} message to conversation {conversation.name} from {partner_phone}")
+		
+		return conversation
 
 
 def on_doctype_update():
@@ -662,3 +922,6 @@ def set_avg_response_time(parent, communication):
 			if response_times:
 				avg_response_time = sum(response_times) / len(response_times)
 				parent.db_set("avg_response_time", avg_response_time)
+
+
+

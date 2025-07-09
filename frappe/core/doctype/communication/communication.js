@@ -20,7 +20,9 @@ frappe.ui.form.on("Communication", {
 
 		// content field contains weird table html that does not render well in Quill
 		// this field is not to be edited directly anyway, so setting it as read only
-		frm.set_df_property("content", "read_only", 1);
+		if (!frm.is_new()) {
+			frm.set_df_property("content", "read_only", 1);
+		}
 
 		if (frm.doc.reference_doctype && frm.doc.reference_name) {
 			frm.add_custom_button(__(frm.doc.reference_name), function () {

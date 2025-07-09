@@ -22,21 +22,24 @@ class Contact(Document):
 		from frappe.core.doctype.dynamic_link.dynamic_link import DynamicLink
 		from frappe.types import DF
 
+		additional_documents: DF.JSON | None
 		address: DF.Link | None
 		address_line1: DF.Data | None
 		city: DF.Data | None
 		company_name: DF.Data | None
 		country: DF.Data | None
-		department: DF.Data | None
+		date_of_joining: DF.Date | None
 		designation: DF.Data | None
 		dob: DF.Date | None
 		email_id: DF.Data | None
 		email_ids: DF.Table[ContactEmail]
+		employee_code: DF.Data | None
 		first_name: DF.Data | None
 		full_name: DF.Data | None
 		gender: DF.Link | None
 		google_contacts: DF.Link | None
 		google_contacts_id: DF.Data | None
+		identity_documents: DF.JSON | None
 		image: DF.AttachImage | None
 		instagram: DF.Data | None
 		is_primary_contact: DF.Check
@@ -52,8 +55,10 @@ class Contact(Document):
 		secondary_type: DF.Link | None
 		state: DF.Data | None
 		sync_with_google_contacts: DF.Check
+		travel_documents: DF.JSON | None
 		unsubscribed: DF.Check
 		user: DF.Link | None
+		work_email: DF.Data | None
 	# end: auto-generated types
 
 	def autoname(self):

@@ -293,7 +293,7 @@ class Communication(Document, CommunicationEmailMixin):
 		print(f"Medium: {self.communication_medium}")
 		
 		event_data = {"doc": self.as_dict(), "key": "communications", "action": action}
-		print(f"Publishing docinfo_update event: {event_data}")
+		# print(f"Publishing docinfo_update event: {event_data}")
 		
 		frappe.publish_realtime(
 			"docinfo_update",
@@ -522,46 +522,53 @@ class Communication(Document, CommunicationEmailMixin):
 			return None
 
 	@staticmethod
-	def get_or_create_conversation(partner_phone, medium=None, contact_name=None, sender_name=None, auto_create_contact=True):
+	def get_or_create_conversation_unified(identifier, medium=None, contact_name=None, sender_name=None, auto_create_contact=True):
 		"""
-		Find an existing Communication for the partner_phone, or create a new one.
-		A conversation is uniquely identified by the medium and the partner's phone number.
-		This method centralizes conversation management for all communication channels.
-		Now includes auto-contact creation for better data organization.
+		Unified method to find or create conversations for any medium.
+		Handles WhatsApp (phone_no field) and Instagram (instagram field) properly.
 		"""
 		if not medium:
 			frappe.throw("Communication medium is required to find or create a conversation.")
 
-		# First, try to find or create a Contact with this phone number
+		print(f"🔄 Getting/creating conversation for {medium} - {identifier}")
+
+		# First, try to find or create a Contact with this identifier
 		if not contact_name and auto_create_contact:
-			contact_name = Communication.get_or_create_contact_from_phone(
-				partner_phone, sender_name=sender_name, auto_create=True
-			)
+			if medium == "WhatsApp":
+				contact_name = Communication.get_or_create_contact_from_phone(
+					identifier, sender_name=sender_name, auto_create=True
+				)
+			elif medium == "Instagram":
+				contact_name = Communication.get_or_create_contact_from_instagram(
+					identifier, sender_name=sender_name, auto_create=True
+				)
 		
+		# Build the filter for finding existing conversation
+		base_filter = {
+			"communication_medium": medium,
+			"communication_type": "Communication"  # Ensure it's a conversation container
+		}
+		
+		# Add medium-specific identifier field
+		if medium == "WhatsApp":
+			base_filter["phone_no"] = identifier
+		elif medium == "Instagram":
+			base_filter["instagram"] = identifier
+		
+		# Try to find contact-linked conversation first
 		if contact_name:
-			comm_name = frappe.db.get_value(
-				"Communication",
-				{
-					"reference_doctype": "Contact", 
-					"reference_name": contact_name, 
-					"communication_medium": medium,
-					"communication_type": "Communication"  # Ensure it's a conversation container
-				},
-				"name",
-			)
+			contact_filter = base_filter.copy()
+			contact_filter.update({
+				"reference_doctype": "Contact", 
+				"reference_name": contact_name
+			})
+			
+			comm_name = frappe.db.get_value("Communication", contact_filter, "name")
 			if comm_name:
 				return frappe.get_doc("Communication", comm_name)
 
-		# If no contact-linked communication, find one by phone number (legacy fallback)
-		comm_name = frappe.db.get_value(
-			"Communication", 
-			{
-				"communication_medium": medium, 
-				"phone_no": partner_phone,
-				"communication_type": "Communication"  # Ensure it's a conversation container
-			}, 
-			"name"
-		)
+		# If no contact-linked communication, find one by identifier (legacy fallback)
+		comm_name = frappe.db.get_value("Communication", base_filter, "name")
 		if comm_name:
 			# If we found an unlinked conversation but now have a contact, link them
 			if contact_name:
@@ -575,9 +582,14 @@ class Communication(Document, CommunicationEmailMixin):
 		# If no conversation exists, create a new one
 		conversation_doc = frappe.new_doc("Communication")
 		conversation_doc.communication_medium = medium
-		conversation_doc.phone_no = partner_phone
 		conversation_doc.sent_or_received = "Received"  # Parent doc is just a container
 		conversation_doc.communication_type = "Communication"  # Mark as conversation container
+		
+		# Set the appropriate identifier field based on medium
+		if medium == "WhatsApp":
+			conversation_doc.phone_no = identifier
+		elif medium == "Instagram":
+			conversation_doc.instagram = identifier
 		
 		if contact_name:
 			conversation_doc.subject = f"{medium} conversation with {contact_name}"
@@ -585,27 +597,74 @@ class Communication(Document, CommunicationEmailMixin):
 			conversation_doc.reference_name = contact_name
 			conversation_doc.status = "Linked"
 		else:
-			conversation_doc.subject = f"{medium} conversation with {partner_phone}"
+			conversation_doc.subject = f"{medium} conversation with {identifier}"
 			conversation_doc.status = "Open"
 		
 		conversation_doc.insert(ignore_permissions=True)
+		print(f"✅ Created new conversation: {conversation_doc.name}")
 		return conversation_doc
 
 	@staticmethod
-	def add_message_to_conversation(partner_phone, medium, message_content, message_type="Incoming", sender_name=None, message_id=None, content_type="text", attachment=None, reply_to_message_id=None, conversation_id=None):
+	def get_or_create_contact_from_instagram(instagram_id, sender_name=None, auto_create=True):
 		"""
-		Add a message to an existing conversation by appending to the conversation's content.
-		This provides a unified interface for all communication channels to log messages.
+		Find an existing Contact for the Instagram ID, or create a new one if auto_create is True.
+		Returns the contact name if found/created, None otherwise.
 		"""
-		print("=== COMMUNICATION.ADD_MESSAGE_TO_CONVERSATION CALLED ===")
-		print(f"Partner Phone: {partner_phone}")
+		# First, try to find existing contact by Instagram ID
+		existing_contact = frappe.db.get_value("Contact", {"instagram": instagram_id}, "name")
+		if existing_contact:
+			frappe.logger().info(f"Found existing Contact '{existing_contact}' for Instagram ID '{instagram_id}'")
+			return existing_contact
+		
+		if not auto_create:
+			return None
+		
+		# Auto-create contact if none exists
+		try:
+			# Generate a contact name
+			if sender_name and sender_name.strip() and sender_name != instagram_id:
+				# Use provided sender name if it's different from the ID
+				first_name = sender_name.strip()
+			else:
+				# Generate name from Instagram ID
+				first_name = f"Instagram {instagram_id}"
+			
+			# Create the contact
+			contact = frappe.get_doc({
+				"doctype": "Contact",
+				"first_name": first_name,
+				"instagram": instagram_id,  # Set the instagram field
+			})
+			
+			# Insert the contact
+			contact.insert(ignore_permissions=True)
+			
+			frappe.logger().info(f"Auto-created Contact '{contact.name}' for Instagram ID '{instagram_id}' with instagram field set")
+			return contact.name
+			
+		except Exception as e:
+			frappe.logger().error(f"Failed to auto-create contact for Instagram {instagram_id}: {str(e)}")
+			# Log error but don't throw - conversation can still be created without contact
+			frappe.log_error(f"Auto-create contact failed for {instagram_id}: {str(e)}", "Contact Auto-Creation")
+			return None
+
+	@staticmethod
+	def add_message_to_conversation_unified(identifier, medium, message_content, message_type="Incoming", sender_name=None, message_id=None, content_type="text", attachment=None, reply_to_message_id=None, conversation_id=None, reference_doctype=None, reference_name=None):
+		"""
+		Unified method to add messages to conversations for any medium.
+		Handles WhatsApp (phone_no field) and Instagram (instagram field) properly.
+		"""
+		print("=== COMMUNICATION.ADD_MESSAGE_TO_CONVERSATION_UNIFIED CALLED ===")
+		print(f"Identifier: {identifier}")
 		print(f"Medium: {medium}")
 		print(f"Message Type: {message_type}")
 		print(f"Content: {message_content}")
+		print(f"Reference: {reference_doctype} / {reference_name}")
 		
-		conversation = Communication.get_or_create_conversation(
-			partner_phone, 
-			medium, 
+		# Get or create conversation using the unified method
+		conversation = Communication.get_or_create_conversation_unified(
+			identifier=identifier,
+			medium=medium, 
 			sender_name=sender_name,
 			auto_create_contact=True
 		)
@@ -619,13 +678,13 @@ class Communication(Document, CommunicationEmailMixin):
 		
 		# Determine sender name for display
 		if message_type == "Incoming":
-			display_sender = sender_name or partner_phone
+			display_sender = sender_name or identifier
 			message_direction = "→"  # Incoming arrow
 		else:
 			display_sender = "You"
 			message_direction = "←"  # Outgoing arrow
 		
-		# Format the message entry (fix whitespace issues)
+		# Format the message entry
 		if content_type == "text":
 			new_message = f"""<div class="message-entry" style="margin-bottom: 10px; padding: 8px; border-left: 3px solid {'#28a745' if message_type == 'Incoming' else '#007bff'};">
 <strong>{display_sender}</strong> <span style="color: #666; font-size: 0.9em;">{timestamp}</span> {message_direction}
@@ -652,16 +711,32 @@ class Communication(Document, CommunicationEmailMixin):
 		
 		# Update sender information and sent_or_received based on message type
 		if message_type == "Incoming":
-			conversation.sender_phone = partner_phone
+			# Set the appropriate identifier field based on medium
+			if medium == "WhatsApp":
+				conversation.sender_phone = identifier
+				conversation.phone_no = identifier
+			elif medium == "Instagram":
+				conversation.instagram = identifier
+			
 			if sender_name:
 				conversation.sender_full_name = sender_name
 			conversation.sent_or_received = "Received"
 		else:  # Outgoing message
 			conversation.sent_or_received = "Sent"
+			# For outgoing messages, ensure identifier is set in appropriate field
+			if medium == "WhatsApp" and not conversation.phone_no:
+				conversation.phone_no = identifier
+			elif medium == "Instagram" and not conversation.instagram:
+				conversation.instagram = identifier
 		
-		# Store the latest external message ID for tracking
+		# Store the latest external message ID for tracking (truncate if too long)
 		if message_id:
-			conversation.message_id = message_id
+			if len(message_id) > 140:
+				truncated_id = message_id[:137] + "..."
+				print(f"⚠️ Message ID truncated from {len(message_id)} to 140 chars")
+				conversation.message_id = truncated_id
+			else:
+				conversation.message_id = message_id
 		
 		# Update content type if specified
 		if content_type:
@@ -671,26 +746,28 @@ class Communication(Document, CommunicationEmailMixin):
 		print("Saving conversation...")
 		conversation.save(ignore_permissions=True)
 		print(f"✅ Conversation saved: {conversation.name}")
+		print(f"✅ Final sent_or_received: {conversation.sent_or_received}")
+		print(f"✅ Final reference: {conversation.reference_doctype} / {conversation.reference_name}")
 		
-		# Publish specific WhatsApp message real-time event
-		if medium == "WhatsApp" and conversation.reference_doctype and conversation.reference_name:
+		# Publish medium-specific real-time events
+		if conversation.reference_doctype and conversation.reference_name:
 			event_data = {
 				"reference_doctype": conversation.reference_doctype,
 				"reference_name": conversation.reference_name,
 				"action": "update",
 				"message_type": message_type,
 			}
-			print(f"Publishing WhatsApp real-time event: {event_data}")
+			print(f"Publishing {medium} real-time event: {event_data}")
 			frappe.publish_realtime(
-				"whatsapp_message",
+				f"{medium.lower()}_message",
 				event_data,
 				after_commit=True,
 			)
-			print("✅ WhatsApp real-time event published")
+			print("✅ Real-time event published")
 		else:
-			print(f"❌ Not publishing real-time event. Medium: {medium}, RefType: {conversation.reference_doctype}, RefName: {conversation.reference_name}")
+			print(f"❌ Not publishing real-time event. RefType: {conversation.reference_doctype}, RefName: {conversation.reference_name}")
 		
-		frappe.logger().info(f"Added {message_type.lower()} message to conversation {conversation.name} from {partner_phone}")
+		frappe.logger().info(f"Added {message_type.lower()} message to conversation {conversation.name} from {identifier} via {medium}")
 		
 		return conversation
 

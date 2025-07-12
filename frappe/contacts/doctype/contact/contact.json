@@ -3,7 +3,7 @@
  "allow_events_in_timeline": 1,
  "allow_import": 1,
  "allow_rename": 1,
- "creation": "2013-01-10 16:34:32",
+ "creation": "2025-07-11 14:28:43.863765",
  "doctype": "DocType",
  "document_type": "Setup",
  "engine": "InnoDB",
@@ -25,6 +25,7 @@
   "city",
   "state",
   "country",
+  "gstin",
   "cb00",
   "designation",
   "gender",
@@ -224,19 +225,16 @@
    "label": "Date of Joining"
   },
   {
-   "depends_on": "eval:doc.primary_type == 'Employee'",
    "fieldname": "identity_documents",
    "fieldtype": "JSON",
    "label": "Identity Documents"
   },
   {
-   "depends_on": "eval:doc.primary_type == 'Employee'",
    "fieldname": "travel_documents",
    "fieldtype": "JSON",
    "label": "Travel Documents"
   },
   {
-   "depends_on": "eval:doc.primary_type == 'Employee'",
    "fieldname": "additional_documents",
    "fieldtype": "JSON",
    "label": "Additional Documents"
@@ -322,10 +320,10 @@
    "options": "fa fa-file-text"
   },
   {
-    "fieldname": "department",
-    "fieldtype": "Data",
-    "label": "Department"
- },
+   "fieldname": "department",
+   "fieldtype": "Data",
+   "label": "Department"
+  },
   {
    "fieldname": "full_name",
    "fieldtype": "Data",
@@ -337,6 +335,11 @@
    "fieldname": "unsubscribed",
    "fieldtype": "Check",
    "label": "Unsubscribed"
+  },
+  {
+   "fieldname": "gstin",
+   "fieldtype": "Data",
+   "label": "GSTIN"
   }
  ],
  "icon": "fa fa-user",
@@ -344,7 +347,7 @@
  "image_field": "image",
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-07-07 16:22:14.155844",
+ "modified": "2025-07-12 21:06:37.053859",
  "modified_by": "Administrator",
  "module": "Contacts",
  "name": "Contact",

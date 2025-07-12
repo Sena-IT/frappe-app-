@@ -29,6 +29,7 @@ class Contact(Document):
 		company_name: DF.Data | None
 		country: DF.Data | None
 		date_of_joining: DF.Date | None
+		department: DF.Data | None
 		designation: DF.Data | None
 		dob: DF.Date | None
 		email_id: DF.Data | None
@@ -39,6 +40,7 @@ class Contact(Document):
 		gender: DF.Link | None
 		google_contacts: DF.Link | None
 		google_contacts_id: DF.Data | None
+		gstin: DF.Data | None
 		identity_documents: DF.JSON | None
 		image: DF.AttachImage | None
 		instagram: DF.Data | None

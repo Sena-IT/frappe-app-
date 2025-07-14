@@ -5,14 +5,14 @@ frappe.ui.form.on("Contact", {
 	onload(frm) {
 		frm.email_field = "email_id";
 	},
-	primary_type: function (frm) {
-		frm.set_query("secondary_type", function () {
+	contact_type: function (frm) {
+		frm.set_query("contact_category", function () {
 			let filters = {};
-			if (frm.doc.primary_type == "Employee") {
+			if (frm.doc.contact_type == "Employee") {
 				filters = {
 					name: ["in", ["User", "Non User"]],
 				};
-			} else if (["Customer", "Vendor"].includes(frm.doc.primary_type)) {
+			} else if (["Customer", "Vendor"].includes(frm.doc.contact_type)) {
 				filters = {
 					name: ["in", ["Individual", "Organization"]],
 				};

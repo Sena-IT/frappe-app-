@@ -116,7 +116,6 @@ class User(Document):
 		new_password: DF.Password | None
 		notifications: DF.Check
 		onboarding_status: DF.SmallText | None
-		phone: DF.Data | None
 		redirect_url: DF.SmallText | None
 		reset_password_key: DF.Data | None
 		restrict_ip: DF.SmallText | None
@@ -1269,11 +1268,8 @@ def create_contact(user, ignore_links=False, ignore_mandatory=False):
 			if user.email:
 				contact.add_email(user.email, is_primary=True)
 
-			if user.phone:
-				contact.add_phone(user.phone, is_primary_phone=True)
-
 			if user.mobile_no:
-				contact.add_phone(user.mobile_no, is_primary_mobile_no=True)
+				contact.add_mobile_no(user.mobile_no, is_primary_mobile_no=True)
 
 			contact.insert(
 				ignore_permissions=True, ignore_links=ignore_links, ignore_mandatory=ignore_mandatory
@@ -1287,22 +1283,14 @@ def create_contact(user, ignore_links=False, ignore_mandatory=False):
 			contact.last_name = user.last_name
 			contact.gender = user.gender
 
-			# Add mobile number if phone does not exists in contact
-			if user.phone and not any(new_contact.phone == user.phone for new_contact in contact.phone_nos):
-				# Set primary phone if there is no primary phone number
-				contact.add_phone(
-					user.phone,
-					is_primary_phone=not any(
-						new_contact.is_primary_phone == 1 for new_contact in contact.phone_nos
-					),
-				)
+			
 
 			# Add mobile number if mobile does not exists in contact
 			if user.mobile_no and not any(
 				new_contact.phone == user.mobile_no for new_contact in contact.phone_nos
 			):
 				# Set primary mobile if there is no primary mobile number
-				contact.add_phone(
+				contact.add_mobile_no(
 					user.mobile_no,
 					is_primary_mobile_no=not any(
 						new_contact.is_primary_mobile_no == 1 for new_contact in contact.phone_nos

@@ -19,27 +19,28 @@ class Contact(Document):
 	if TYPE_CHECKING:
 		from frappe.contacts.doctype.contact_email.contact_email import ContactEmail
 		from frappe.contacts.doctype.contact_phone.contact_phone import ContactPhone
+		from frappe.contacts.doctype.organization_representative.organization_representative import OrganizationRepresentative
 		from frappe.core.doctype.dynamic_link.dynamic_link import DynamicLink
 		from frappe.types import DF
 
 		additional_documents: DF.JSON | None
-		address: DF.Link | None
 		address_line1: DF.Data | None
+		address_line_2: DF.Data | None
+		booking_permissions: DF.Literal["Self Only", "Team", "Department", "All"] | None
 		city: DF.Data | None
-		company_name: DF.Data | None
 		country: DF.Data | None
 		date_of_joining: DF.Date | None
 		department: DF.Data | None
 		designation: DF.Data | None
+		direct_supervisor: DF.Link | None
 		dob: DF.Date | None
 		email_id: DF.Data | None
 		email_ids: DF.Table[ContactEmail]
 		employee_code: DF.Data | None
-		first_name: DF.Data | None
+		employee_status: DF.Literal["Active", "Inactive"] | None
+		first_name: DF.Data
 		full_name: DF.Data | None
 		gender: DF.Link | None
-		google_contacts: DF.Link | None
-		google_contacts_id: DF.Data | None
 		gstin: DF.Data | None
 		identity_documents: DF.JSON | None
 		image: DF.AttachImage | None
@@ -47,20 +48,24 @@ class Contact(Document):
 		is_primary_contact: DF.Check
 		last_name: DF.Data | None
 		links: DF.Table[DynamicLink]
+		manager: DF.Link | None
 		mobile_no: DF.Data | None
 		notes: DF.LongText | None
 		organization_name: DF.Data | None
-		phone: DF.Data | None
+		organization_email: DF.Data | None
+		organization_mobile_no: DF.Data | None
+		organization_instagram: DF.Data | None
+		representatives: DF.Table[OrganizationRepresentative]
 		phone_nos: DF.Table[ContactPhone]
 		pincode: DF.Data | None
-		primary_type: DF.Link | None
-		pulled_from_google_contacts: DF.Check
-		secondary_type: DF.Link | None
+		contact_type: DF.Link | None
+		contact_category: DF.Link | None
 		state: DF.Data | None
-		sync_with_google_contacts: DF.Check
+		travel_approval_limit: DF.Currency | None
 		travel_documents: DF.JSON | None
 		unsubscribed: DF.Check
 		user: DF.Link | None
+		user_role: DF.Link | None
 		work_email: DF.Data | None
 	# end: auto-generated types
 
@@ -78,8 +83,8 @@ class Contact(Document):
 	def validate(self):
 		self.full_name = self._get_full_name()
 		self.set_primary_email()
-		self.set_primary("phone")
 		self.set_primary("mobile_no")
+		self.set_primary_representative()
 
 		self.set_user()
 
@@ -96,6 +101,49 @@ class Contact(Document):
 	def set_user(self):
 		if not self.user and self.email_id:
 			self.user = frappe.db.get_value("User", {"email": self.email_id})
+		
+		# Auto-sync employee system users
+		if self.contact_type == "Employee" and self.contact_category == "User" and self.work_email:
+			if not self.user:
+				self.user = frappe.db.get_value("User", {"email": self.work_email})
+			
+			# Auto-create system user if it doesn't exist
+			if not self.user and self.work_email and not frappe.db.exists("User", self.work_email):
+				self.create_system_user()
+
+	def create_system_user(self):
+		"""Create a system user for this employee contact"""
+		if self.contact_type != "Employee" or self.contact_category != "User":
+			frappe.throw(_("System users can only be created for Employee contacts with User category"))
+		
+		if not self.work_email:
+			frappe.throw(_("Work Email is required to create a system user"))
+		
+		if frappe.db.exists("User", self.work_email):
+			frappe.throw(_("User with email {0} already exists").format(self.work_email))
+		
+		# Create user
+		user_doc = frappe.get_doc({
+			"doctype": "User",
+			"email": self.work_email,
+			"first_name": self.first_name,
+			"last_name": self.last_name,
+			"user_type": "System User",
+			"enabled": 1 if self.employee_status == "Active" else 0,
+			"send_welcome_email": 1
+		})
+		
+		# Add primary role if specified
+		if self.user_role:
+			user_doc.append("roles", {"role": self.user_role})
+		
+		user_doc.insert(ignore_permissions=True)
+		
+		# Link back to contact
+		self.user = user_doc.name
+		self.save(ignore_permissions=True)
+		
+		return user_doc
 
 	def get_link_for(self, link_doctype):
 		"""Return the link name, if exists for the given link DocType"""
@@ -123,13 +171,12 @@ class Contact(Document):
 			if autosave:
 				self.save(ignore_permissions=True)
 
-	def add_phone(self, phone, is_primary_phone=0, is_primary_mobile_no=0, autosave=False):
-		if not frappe.db.exists("Contact Phone", {"phone": phone, "parent": self.name}):
+	def add_mobile_no(self, mobile_no, is_primary_mobile_no=0, autosave=False):
+		if not frappe.db.exists("Contact Phone", {"phone": mobile_no, "parent": self.name}):
 			self.append(
 				"phone_nos",
 				{
-					"phone": phone,
-					"is_primary_phone": is_primary_phone,
+					"phone": mobile_no,
 					"is_primary_mobile_no": is_primary_mobile_no,
 				},
 			)
@@ -166,6 +213,12 @@ class Contact(Document):
 
 		field_name = "is_primary_" + fieldname
 
+		# If no primary is set, make the first phone number primary
+		if fieldname == "mobile_no":
+			primary_set = any(phone.get(field_name) for phone in self.phone_nos)
+			if not primary_set and len(self.phone_nos) > 0:
+				self.phone_nos[0].is_primary_mobile_no = 1
+
 		is_primary = [phone.phone for phone in self.phone_nos if phone.get(field_name)]
 
 		if len(is_primary) > 1:
@@ -183,8 +236,26 @@ class Contact(Document):
 		if not primary_number_exists:
 			setattr(self, fieldname, "")
 
+	def set_primary_representative(self):
+		"""Set the first representative as primary if no primary is explicitly chosen"""
+		if not self.representatives:
+			return
+
+		# Check if more than one primary representative is set
+		primary_representatives = [rep for rep in self.representatives if rep.is_primary_representative]
+		
+		if len(primary_representatives) > 1:
+			frappe.throw(_("Only one {0} can be set as primary.").format(frappe.bold(_("Representative"))))
+
+		# If no primary is set and there are representatives, make the first one primary
+		primary_set = any(rep.is_primary_representative for rep in self.representatives)
+		if not primary_set and len(self.representatives) > 0:
+			self.representatives[0].is_primary_representative = 1
+
 	def _get_full_name(self) -> str:
-		return get_full_name(self.first_name, "", self.last_name, self.company_name)
+		if self.contact_category == "Organization":
+			return self.organization_name or ""
+		return get_full_name(self.first_name, "", self.last_name)
 
 	def get_vcard(self):
 		from vobject import vCard
@@ -209,8 +280,6 @@ class Contact(Document):
 			vcard.add("title").value = self.designation
 
 		org_list = []
-		if self.company_name:
-			org_list.append(self.company_name)
 
 		if self.department:
 			org_list.append(self.department)
@@ -227,8 +296,6 @@ class Contact(Document):
 		for row in self.phone_nos:
 			tel = vcard.add("tel")
 			tel.value = row.phone
-			if row.is_primary_phone:
-				tel.type_param = "home"
 
 			if row.is_primary_mobile_no:
 				tel.type_param = "cell"
@@ -336,7 +403,6 @@ def get_contact_details(contact):
 		"contact_display": contact.get("full_name"),
 		"contact_email": contact.get("email_id"),
 		"contact_mobile": contact.get("mobile_no"),
-		"contact_phone": contact.get("phone"),
 		"contact_designation": contact.get("designation"),
 		"contact_department": contact.get("department"),
 	}
@@ -347,7 +413,7 @@ def update_contact(doc, method):
 	contact_name = frappe.db.get_value("Contact", {"email_id": doc.name})
 	if contact_name:
 		contact = frappe.get_doc("Contact", contact_name)
-		for key in ("first_name", "last_name", "phone"):
+		for key in ("first_name", "last_name", "mobile_no"):
 			if doc.get(key):
 				contact.set(key, doc.get(key))
 		contact.flags.ignore_mandatory = True
@@ -368,7 +434,7 @@ def contact_query(doctype, txt, searchfield, start, page_len, filters):
 
 	return frappe.db.sql(
 		f"""select
-			`tabContact`.name, `tabContact`.full_name, `tabContact`.company_name
+			`tabContact`.name, `tabContact`.full_name,
 		from
 			`tabContact`, `tabDynamic Link`
 		where
@@ -379,7 +445,7 @@ def contact_query(doctype, txt, searchfield, start, page_len, filters):
 			`tabContact`.`{searchfield}` like %(txt)s
 			{get_match_cond(doctype)}
 		order by
-			if(locate(%(_txt)s, `tabContact`.full_name), locate(%(_txt)s, `tabContact`.company_name), 99999),
+			if(locate(%(_txt)s, `tabContact`.full_name), 99999),
 			`tabContact`.idx desc, `tabContact`.full_name
 		limit %(start)s, %(page_len)s """,
 		{
@@ -478,12 +544,10 @@ def get_full_name(
 	first: str | None = None,
 	middle: str | None = None,
 	last: str | None = None,
-	company: str | None = None,
+	
 ) -> str:
 	full_name = " ".join(filter(None, [cstr(f).strip() for f in [first, middle, last]]))
-	if not full_name and company:
-		full_name = company
-
+	
 	return full_name
 
 
@@ -516,7 +580,6 @@ def get_contact_display_list(doctype: str, name: str) -> list[dict]:
 			filters={
 				"parenttype": "Contact",
 				"parent": contact.name,
-				"is_primary_phone": 0,
 				"is_primary_mobile_no": 0,
 			},
 			fields=["phone"],

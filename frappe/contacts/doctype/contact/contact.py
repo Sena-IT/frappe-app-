@@ -52,6 +52,7 @@ class Contact(Document):
 		organization_name: DF.Data | None
 		phone: DF.Data | None
 		phone_nos: DF.Table[ContactPhone]
+		pincode: DF.Data | None
 		primary_type: DF.Link | None
 		pulled_from_google_contacts: DF.Check
 		secondary_type: DF.Link | None

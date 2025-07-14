@@ -26,6 +26,7 @@
   "state",
   "country",
   "gstin",
+  "pincode",
   "cb00",
   "designation",
   "gender",
@@ -340,6 +341,11 @@
    "fieldname": "gstin",
    "fieldtype": "Data",
    "label": "GSTIN"
+  },
+  {
+   "fieldname": "pincode",
+   "fieldtype": "Data",
+   "label": "Pincode"
   }
  ],
  "icon": "fa fa-user",
@@ -347,7 +353,7 @@
  "image_field": "image",
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-07-12 21:06:37.053859",
+ "modified": "2025-07-13 14:12:07.037029",
  "modified_by": "Administrator",
  "module": "Contacts",
  "name": "Contact",

@@ -25,20 +25,22 @@ class Contact(Document):
 
 		additional_documents: DF.JSON | None
 		address_line1: DF.Data | None
-		address_line_2: DF.Data | None
-		booking_permissions: DF.Literal["Self Only", "Team", "Department", "All"] | None
+		address_line2: DF.Data | None
+		booking_permissions: DF.Literal["Self Only", "Team", "Department", "All"]
 		city: DF.Data | None
+		contact_category: DF.Link | None
+		contact_type: DF.Link | None
 		country: DF.Data | None
 		date_of_joining: DF.Date | None
-		department: DF.Data | None
+		department: DF.Link | None
 		designation: DF.Data | None
 		direct_supervisor: DF.Link | None
 		dob: DF.Date | None
 		email_id: DF.Data | None
 		email_ids: DF.Table[ContactEmail]
 		employee_code: DF.Data | None
-		employee_status: DF.Literal["Active", "Inactive"] | None
-		first_name: DF.Data
+		employee_status: DF.Literal["Active", "Inactive"]
+		first_name: DF.Data | None
 		full_name: DF.Data | None
 		gender: DF.Link | None
 		gstin: DF.Data | None
@@ -51,21 +53,17 @@ class Contact(Document):
 		manager: DF.Link | None
 		mobile_no: DF.Data | None
 		notes: DF.LongText | None
-		organization_name: DF.Data | None
-		organization_email: DF.Data | None
-		organization_mobile_no: DF.Data | None
-		organization_instagram: DF.Data | None
-		representatives: DF.Table[OrganizationRepresentative]
 		phone_nos: DF.Table[ContactPhone]
 		pincode: DF.Data | None
-		contact_type: DF.Link | None
-		contact_category: DF.Link | None
+		representatives: DF.Table[OrganizationRepresentative]
 		state: DF.Data | None
-		travel_approval_limit: DF.Currency | None
+		travel_approval_limit: DF.Currency
 		travel_documents: DF.JSON | None
 		unsubscribed: DF.Check
 		user: DF.Link | None
 		user_role: DF.Link | None
+		vendor_type: DF.Link | None
+		website: DF.Data | None
 		work_email: DF.Data | None
 	# end: auto-generated types
 
@@ -98,7 +96,7 @@ class Contact(Document):
 
 		deduplicate_dynamic_links(self)
 
-	def set_user(self):
+	def set_user(self):		
 		if not self.user and self.email_id:
 			self.user = frappe.db.get_value("User", {"email": self.email_id})
 		
@@ -137,11 +135,17 @@ class Contact(Document):
 		if self.user_role:
 			user_doc.append("roles", {"role": self.user_role})
 		
+		# Set a flag to indicate this user is being created from a contact
+		user_doc.flags.created_from_contact = True
+		user_doc.flags.creating_contact_name = self.name
+		
 		user_doc.insert(ignore_permissions=True)
 		
-		# Link back to contact
+		# Link back to contact - just set the field, don't save again
 		self.user = user_doc.name
-		self.save(ignore_permissions=True)
+		
+		# Don't call self.save() here as we're already in the middle of saving the contact
+		# The original save operation will continue and complete
 		
 		return user_doc
 
@@ -254,7 +258,8 @@ class Contact(Document):
 
 	def _get_full_name(self) -> str:
 		if self.contact_category == "Organization":
-			return self.organization_name or ""
+			# For organizations, use first_name as the organization name
+			return self.first_name or ""
 		return get_full_name(self.first_name, "", self.last_name)
 
 	def get_vcard(self):

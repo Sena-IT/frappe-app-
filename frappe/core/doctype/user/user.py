@@ -269,13 +269,16 @@ class User(Document):
 		frappe.clear_cache(user=self.name)
 		now = frappe.flags.in_test or frappe.flags.in_install
 		self.send_password_notification(self.__new_password)
-		frappe.enqueue(
-			"frappe.core.doctype.user.user.create_contact",
-			user=self,
-			ignore_mandatory=True,
-			now=now,
-			enqueue_after_commit=True,
-		)
+		
+		# Skip contact creation if user was created from a contact
+		if not (hasattr(self, 'flags') and self.flags.get('created_from_contact')):
+			frappe.enqueue(
+				"frappe.core.doctype.user.user.create_contact",
+				user=self,
+				ignore_mandatory=True,
+				now=now,
+				enqueue_after_commit=True,
+			)
 
 		if self.name not in STANDARD_USERS and not self.user_image:
 			frappe.enqueue(
@@ -1252,7 +1255,12 @@ def create_contact(user, ignore_links=False, ignore_mandatory=False):
 	if user.name in ["Administrator", "Guest"]:
 		return
 
+	# Skip contact creation if user was created from a contact
+	if hasattr(user, 'flags') and user.flags.get('created_from_contact'):
+		return
+
 	contact_name = get_contact_name(user.email)
+	
 	if not contact_name:
 		try:
 			contact = frappe.get_doc(
@@ -1282,8 +1290,6 @@ def create_contact(user, ignore_links=False, ignore_mandatory=False):
 			contact.first_name = user.first_name
 			contact.last_name = user.last_name
 			contact.gender = user.gender
-
-			
 
 			# Add mobile number if mobile does not exists in contact
 			if user.mobile_no and not any(

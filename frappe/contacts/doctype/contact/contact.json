@@ -16,24 +16,23 @@
   "user",
   "contact_type",
   "contact_category",
-  "organization_name",
-  "organization_email",
-  "organization_mobile_no",
-  "organization_instagram",
   "representatives",
   "dob",
   "notes",
   "address_line1",
-  "address_line_2",
+  "address_line2",
   "city",
   "state",
   "country",
   "gstin",
   "pincode",
+  "vendor_type",
+  "department",
   "cb00",
   "designation",
   "gender",
   "instagram",
+  "website",
   "mobile_no",
   "image",
   "employee_code",
@@ -55,7 +54,6 @@
   "links",
   "is_primary_contact",
   "more_info",
-  "department",
   "unsubscribed"
  ],
  "fields": [
@@ -69,12 +67,13 @@
    "fieldtype": "Data",
    "in_global_search": 1,
    "label": "First Name",
-   "mandatory_depends_on": "eval:doc.contact_category != 'Organization'",
+   "mandatory_depends_on": "1",
    "oldfieldname": "first_name",
    "oldfieldtype": "Data"
   },
   {
    "bold": 1,
+   "depends_on": "eval:doc.contact_category != 'Organization'",
    "fieldname": "last_name",
    "fieldtype": "Data",
    "label": "Last Name",
@@ -117,33 +116,6 @@
   },
   {
    "depends_on": "eval:doc.contact_category == 'Organization'",
-   "fieldname": "organization_name",
-   "fieldtype": "Data",
-   "label": "Organization Name",
-   "mandatory_depends_on": "eval:doc.contact_category == 'Organization'"
-  },
-  {
-   "depends_on": "eval:doc.contact_category == 'Organization'",
-   "fieldname": "organization_email",
-   "fieldtype": "Data",
-   "label": "Organization Email",
-   "options": "Email"
-  },
-  {
-   "depends_on": "eval:doc.contact_category == 'Organization'",
-   "fieldname": "organization_mobile_no",
-   "fieldtype": "Data",
-   "label": "Organization Mobile No",
-   "mandatory_depends_on": "eval:doc.contact_category == 'Organization'"
-  },
-  {
-   "depends_on": "eval:doc.contact_category == 'Organization'",
-   "fieldname": "organization_instagram",
-   "fieldtype": "Data",
-   "label": "Organization Instagram"
-  },
-  {
-   "depends_on": "eval:doc.contact_category == 'Organization'",
    "fieldname": "representatives",
    "fieldtype": "Table",
    "label": "Representatives",
@@ -165,6 +137,11 @@
    "label": "Address Line 1"
   },
   {
+   "fieldname": "address_line2",
+   "fieldtype": "Data",
+   "label": "Address Line 2"
+  },
+  {
    "fieldname": "city",
    "fieldtype": "Data",
    "label": "City"
@@ -179,7 +156,7 @@
    "fieldtype": "Data",
    "label": "Country"
   },
-{
+  {
    "fieldname": "cb00",
    "fieldtype": "Column Break"
   },
@@ -189,6 +166,7 @@
    "label": "Designation"
   },
   {
+   "default": "Male",
    "fieldname": "gender",
    "fieldtype": "Link",
    "label": "Gender",
@@ -200,6 +178,14 @@
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Instagram",
+   "read_only": 1
+  },
+  {
+   "bold": 1,
+   "fieldname": "website",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Website",
    "read_only": 1
   },
   {
@@ -290,7 +276,6 @@
    "fieldtype": "JSON",
    "label": "Additional Documents"
   },
-
   {
    "fieldname": "sb_01",
    "fieldtype": "Section Break",
@@ -336,11 +321,6 @@
    "options": "fa fa-file-text"
   },
   {
-   "fieldname": "department",
-   "fieldtype": "Data",
-   "label": "Department"
-  },
-  {
    "fieldname": "full_name",
    "fieldtype": "Data",
    "label": "Full Name",
@@ -363,9 +343,17 @@
    "label": "Pincode"
   },
   {
-   "fieldname": "address_line_2",
-   "fieldtype": "Data",
-   "label": "Address Line 2"
+   "depends_on": "eval:doc.contact_type == 'Vendor'",
+   "fieldname": "vendor_type",
+   "fieldtype": "Link",
+   "label": "Vendor Type",
+   "options": "Vendor Type"
+  },
+  {
+   "fieldname": "department",
+   "fieldtype": "Link",
+   "label": "Department",
+   "options": "Department"
   }
  ],
  "icon": "fa fa-user",
@@ -373,7 +361,7 @@
  "image_field": "image",
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-07-14 21:03:31.185961",
+ "modified": "2025-07-17 13:54:02.455160",
  "modified_by": "Administrator",
  "module": "Contacts",
  "name": "Contact",

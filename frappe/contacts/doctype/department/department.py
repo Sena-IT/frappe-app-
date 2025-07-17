@@ -14,9 +14,8 @@ class Department(Document):
 	if TYPE_CHECKING:
 		from frappe.types import DF
 
-		parent: DF.Data
-		parentfield: DF.Data
-		parenttype: DF.Data
+		department: DF.Data
+		description: DF.LongText | None
 	# end: auto-generated types
 
 	pass

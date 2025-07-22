@@ -1,24 +1,37 @@
 {
  "actions": [],
- "autoname": "Prompt",
- "creation": "2019-10-23 15:00:48.392374",
+ "autoname": "format:{doctype_name}-{settings_name}",
+ "creation": "2020-09-21 17:15:37.319864",
  "doctype": "DocType",
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
+  "doctype_name",
+  "settings_name",
   "disable_count",
-  "disable_comment_count",
   "disable_sidebar_stats",
   "disable_auto_refresh",
-  "allow_edit",
+  "disable_comment_count",
   "disable_automatic_recency_filters",
   "total_fields",
-  "fields_html",
-  "fields",
   "filters",
-  "order_by"
+  "order_by",
+  "fields"
  ],
  "fields": [
+  {
+   "fieldname": "settings_name",
+   "fieldtype": "Data",
+   "label": "Settings Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "doctype_name",
+   "fieldtype": "Link",
+   "label": "DocType",
+   "options": "DocType",
+   "reqd": 1
+  },
   {
    "default": "0",
    "fieldname": "disable_count",
@@ -51,9 +64,7 @@
   {
    "fieldname": "fields",
    "fieldtype": "Code",
-   "hidden": 1,
-   "label": "Fields",
-   "read_only": 1
+   "label": "Fields"
   },
   {
    "default": "0",
@@ -87,7 +98,7 @@
  ],
  "grid_page_length": 50,
  "links": [],
- "modified": "2025-07-04 14:05:38.154720",
+ "modified": "2025-07-22 14:04:48.411314",
  "modified_by": "Administrator",
  "module": "Desk",
  "name": "List View Settings",

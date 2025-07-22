@@ -10,23 +10,30 @@ from frappe.query_builder.utils import DocType
 
 
 @frappe.whitelist()
-def get_list_settings(doctype):
+def get_list_settings(doctype, settings_name=None):
+	if not settings_name:
+		return None
+
 	try:
-		return frappe.get_cached_doc("List View Settings", doctype)
+		return frappe.get_cached_doc("List View Settings", f"{doctype}-{settings_name}")
 	except frappe.DoesNotExistError:
 		frappe.clear_messages()
-
 
 @frappe.whitelist()
-def set_list_settings(doctype, values):
-	try:
-		doc = frappe.get_doc("List View Settings", doctype)
-	except frappe.DoesNotExistError:
-		doc = frappe.new_doc("List View Settings")
-		doc.name = doctype
-		frappe.clear_messages()
-	doc.update(frappe.parse_json(values))
-	doc.save()
+def set_list_settings(doctype, settings_name, values):
+    try:
+        doc = frappe.get_doc("List View Settings", f"{doctype}-{settings_name}")
+    except frappe.DoesNotExistError:
+        doc = frappe.new_doc("List View Settings")
+        doc.doctype_name = doctype
+        doc.settings_name = settings_name
+        frappe.clear_messages()
+    doc.update(frappe.parse_json(values))
+    doc.save()
+
+@frappe.whitelist()
+def get_all_list_settings(doctype):
+    return frappe.get_all("List View Settings", filters={"doctype_name": doctype}, fields=["name", "settings_name"])
 
 
 @frappe.whitelist()
